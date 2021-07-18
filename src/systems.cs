@@ -5,6 +5,7 @@
 // -------------------------------------------------------------------------------------
 
 #if ENABLE_IL2CPP
+using System;
 using Unity.IL2CPP.CompilerServices;
 #endif
 
