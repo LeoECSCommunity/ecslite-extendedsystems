@@ -70,14 +70,6 @@ systems
     .Init ();
 ```
 
-```csharp
-            // register components for removing here
-            // position in registration is important,
-            // should be after all AddWorld() registration, for example:
-            // .DelHere<TestComponent1> ()
-            // .DelHere<TestComponent2> ("events")
-```
-
 ## Autoremove components at point
 `DelHere()` helper can be used to autoremove components at required point in execution sequence:
 ```csharp
