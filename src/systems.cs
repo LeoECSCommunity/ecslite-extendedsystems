@@ -25,6 +25,9 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         }
 
         public static EcsSystems DelHere<T> (this EcsSystems systems, string worldName = null) where T : struct {
+#if DEBUG
+            if (systems.GetWorld (worldName) == null) { throw new System.Exception ($"Requested world \"{(string.IsNullOrEmpty (worldName) ? "[default]" : worldName)}\" not found."); }
+#endif
             return systems.Add (new DelHereSystem<T> (systems.GetWorld (worldName)));
         }
     }
