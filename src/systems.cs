@@ -25,6 +25,9 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         }
 
         public static EcsSystems DelHere<T> (this EcsSystems systems, string worldName = null) where T : struct {
+#if DEBUG
+            if (systems.GetWorld (worldName) == null) { throw new System.Exception ($"Requested world \"{(string.IsNullOrEmpty (worldName) ? "[default]" : worldName)}\" not found."); }
+#endif
             return systems.Add (new DelHereSystem<T> (systems.GetWorld (worldName)));
         }
     }
@@ -33,7 +36,7 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.NullChecks, false)]
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
-    sealed class DelHereSystem<T> : IEcsRunSystem where T : struct {
+    public sealed class DelHereSystem<T> : IEcsRunSystem where T : struct {
         readonly EcsFilter _filter;
         readonly EcsPool<T> _pool;
 
