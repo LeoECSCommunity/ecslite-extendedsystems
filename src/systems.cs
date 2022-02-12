@@ -1,7 +1,7 @@
 // -------------------------------------------------------------------------------------
 // The MIT License
 // Extended systems for LeoECS Lite https://github.com/Leopotam/ecslite-extendedsystems
-// Copyright (c) 2021 Leopotam <leopotam@gmail.com>
+// Copyright (c) 2021-2022 Leopotam <leopotam@gmail.com>
 // -------------------------------------------------------------------------------------
 
 #if ENABLE_IL2CPP
