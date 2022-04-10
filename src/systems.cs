@@ -10,8 +10,8 @@ using Unity.IL2CPP.CompilerServices;
 #endif
 
 namespace Leopotam.EcsLite.ExtendedSystems {
-    public struct EcsGroupSystemState {
-        public string Name;
+    public struct EcsGroupSystemState<T> where T : System.IComparable {
+        public T Name;
         public bool State;
     }
 
@@ -20,8 +20,8 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
     public static class Extensions {
-        public static EcsSystems AddGroup (this EcsSystems systems, string groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) {
-            return systems.Add (new EcsGroupSystem (groupName, defaultState, eventWorldName, nestedSystems));
+        public static EcsSystems AddGroup<T> (this EcsSystems systems, T groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) where T : System.IComparable {
+            return systems.Add (new EcsGroupSystem<T>(groupName, defaultState, eventWorldName, nestedSystems));
         }
 
         public static EcsSystems DelHere<T> (this EcsSystems systems, string worldName = null) where T : struct {
@@ -56,24 +56,25 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.NullChecks, false)]
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class EcsGroupSystem :
+    public sealed class EcsGroupSystem<T> :
         IEcsPreInitSystem,
         IEcsInitSystem,
         IEcsRunSystem,
         IEcsDestroySystem,
-        IEcsPostDestroySystem {
+        IEcsPostDestroySystem 
+        where T : System.IComparable {
         readonly IEcsSystem[] _allSystems;
         readonly IEcsRunSystem[] _runSystems;
         readonly int _runSystemsCount;
         readonly string _eventsWorldName;
-        readonly string _name;
+        readonly T _name;
         EcsFilter _filter;
-        EcsPool<EcsGroupSystemState> _pool;
+        EcsPool<EcsGroupSystemState<T>> _pool;
         bool _state;
 
-        public EcsGroupSystem (string name, bool defaultState, string eventsWorldName, params IEcsSystem[] systems) {
+        public EcsGroupSystem (T name, bool defaultState, string eventsWorldName, params IEcsSystem[] systems) {
 #if DEBUG && !LEOECSLITE_NO_SANITIZE_CHECKS
-            if (string.IsNullOrEmpty (name)) { throw new System.Exception ("Group name cant be null or empty."); }
+            if (name == null || name is string nameStr && string.IsNullOrEmpty (nameStr)) { throw new System.Exception ("Group name cant be null or empty."); }
             if (systems == null || systems.Length == 0) { throw new System.Exception ("Systems list cant be null or empty."); }
 #endif
             _name = name;
@@ -91,8 +92,8 @@ namespace Leopotam.EcsLite.ExtendedSystems {
 
         public void PreInit (EcsSystems systems) {
             var world = systems.GetWorld (_eventsWorldName);
-            _pool = world.GetPool<EcsGroupSystemState> ();
-            _filter = world.Filter<EcsGroupSystemState> ().End ();
+            _pool = world.GetPool<EcsGroupSystemState<T>> ();
+            _filter = world.Filter<EcsGroupSystemState<T>> ().End ();
             for (var i = 0; i < _allSystems.Length; i++) {
                 if (_allSystems[i] is IEcsPreInitSystem preInitSystem) {
                     preInitSystem.PreInit (systems);
@@ -119,7 +120,7 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         public void Run (EcsSystems systems) {
             foreach (var entity in _filter) {
                 ref var evt = ref _pool.Get (entity);
-                if (evt.Name == _name) {
+                if (evt.Name.Equals (_name)) {
                     _state = evt.State;
                     _pool.Del (entity);
                 }
