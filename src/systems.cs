@@ -10,12 +10,7 @@ using Unity.IL2CPP.CompilerServices;
 #endif
 
 namespace Leopotam.EcsLite.ExtendedSystems {
-    public struct EcsGroupSystemState {
-        public string Name;
-        public bool State;
-    }
-
-    public struct EcsGroupSystemState<T> where T: System.IComparable {
+    public struct EcsGroupSystemState<T> where T: IComparable {
         public T Name;
         public bool State;
     }
@@ -25,12 +20,12 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
     public static class Extensions {
-        public static EcsSystems AddGroup<T> (this EcsSystems systems, T groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) where T: System.IComparable {
+        public static EcsSystems AddGroup<T> (this EcsSystems systems, T groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) where T: System.IComparable, IEquatable<T> {
             return systems.Add (new EcsGroupSystem<T> (groupName, defaultState, eventWorldName, nestedSystems));
         }
 
         public static EcsSystems AddGroup (this EcsSystems systems, string groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) {
-            return systems.Add (new EcsGroupSystem<string> (groupName, defaultState, eventWorldName, nestedSystems));
+            return systems.AddGroup<string>(groupName, defaultState, eventWorldName);
         }
 
         public static EcsSystems DelHere<T> (this EcsSystems systems, string worldName = null) where T : struct {
@@ -71,17 +66,14 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         IEcsRunSystem,
         IEcsDestroySystem,
         IEcsPostDestroySystem
-        where T: System.IComparable {
+        where T: System.IComparable, IEquatable<T> {
         readonly IEcsSystem[] _allSystems;
         readonly IEcsRunSystem[] _runSystems;
         readonly int _runSystemsCount;
         readonly string _eventsWorldName;
         readonly T _name;
-        readonly string _nameString;
         EcsFilter _filter;
-        EcsFilter _filterObsolete;
         EcsPool<EcsGroupSystemState<T>> _pool;
-        EcsPool<EcsGroupSystemState> _poolObsolete;
         bool _state;
 
         public EcsGroupSystem (T name, bool defaultState, string eventsWorldName, params IEcsSystem[] systems) {
@@ -90,7 +82,6 @@ namespace Leopotam.EcsLite.ExtendedSystems {
             if (systems == null || systems.Length == 0) { throw new System.Exception ("Systems list cant be null or empty."); }
 #endif
             _name = name;
-            _nameString = name.ToString ();
             _state = defaultState;
             _eventsWorldName = eventsWorldName;
             _allSystems = systems;
@@ -106,9 +97,7 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         public void PreInit (EcsSystems systems) {
             var world = systems.GetWorld (_eventsWorldName);
             _pool = world.GetPool<EcsGroupSystemState<T>> ();
-            _poolObsolete = world.GetPool<EcsGroupSystemState> ();
             _filter = world.Filter<EcsGroupSystemState<T>> ().End ();
-            _filterObsolete = world.Filter<EcsGroupSystemState> ().End ();
             for (var i = 0; i < _allSystems.Length; i++) {
                 if (_allSystems[i] is IEcsPreInitSystem preInitSystem) {
                     preInitSystem.PreInit (systems);
@@ -133,25 +122,14 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         }
 
         public void Run (EcsSystems systems) {
-            bool foundValidEvent = false;
-
             foreach (var entity in _filter) {
                 ref var evt = ref _pool.Get (entity);
                 if (evt.Name.Equals (_name)) {
                     _state = evt.State;
                     _pool.Del (entity);
-                    foundValidEvent = true;
                 }
             }
-            if (!foundValidEvent) {
-                foreach (var entity in _filterObsolete) {
-                    ref var evt = ref _poolObsolete.Get (entity);
-                    if (evt.Name == _nameString) {
-                        _state = evt.State;
-                        _poolObsolete.Del (entity);
-                    }
-                }
-            }
+
             if (_state) {
                 for (var i = 0; i < _runSystemsCount; i++) {
                     _runSystems[i].Run (systems);
