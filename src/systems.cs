@@ -20,7 +20,7 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         public bool State {get; set;}
     }
 
-    internal interface IEcsGroupSystemState<T> where T: IComparable {
+    public interface IEcsGroupSystemState<T> where T: IComparable {
         public T Name {get; set;}
         public bool State {get; set;}
     }
@@ -70,7 +70,7 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.NullChecks, false)]
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
-    internal class EcsGroupSystem<TName, TState> :
+    public sealed class EcsGroupSystem<TName, TState> :
         IEcsPreInitSystem,
         IEcsInitSystem,
         IEcsRunSystem,
@@ -134,7 +134,7 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         public void Run (EcsSystems systems) {
             foreach (var entity in _filter) {
                 ref var evt = ref _pool.Get (entity);
-                if (evt.Name.Equals (_name)) {
+                if (evt.Name.CompareTo (_name) == 0) {
                     _state = evt.State;
                     _pool.Del (entity);
                 }
