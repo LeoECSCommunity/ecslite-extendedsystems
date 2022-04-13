@@ -1,10 +1,10 @@
 {
-    "name": "com.leopotam.ecslite.extendedsystems",
-    "author": "Leopotam",
-    "displayName": "LeoECS Lite Extended systems",
-    "description": "Extended systems for LeoECS Lite.",
+    "name": "com.leoecscommunity.ecslite.extendedsystems",
+    "author": "LeoECSCommunity",
+    "displayName": "LeoECSCommunity Lite Extended systems",
+    "description": "Extended systems for LeoECSCommunity Lite.",
     "unity": "2020.3",
-    "version": "2022.2.22",
+    "version": "0.1.0-preview",
     "keywords": [
         "leoecslite",
         "leoecs",
@@ -14,6 +14,6 @@
     "dependencies": {},
     "repository": {
         "type": "git",
-        "url": "https://github.com/Leopotam/ecslite-extendedsystems.git"
+        "url": "https://github.com/LeoECSCommunity/ecslite-extendedsystems.git"
     }
 }
