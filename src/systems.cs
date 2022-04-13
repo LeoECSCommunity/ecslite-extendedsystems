@@ -4,8 +4,8 @@
 // Copyright (c) 2021-2022 Leopotam <leopotam@gmail.com>
 // -------------------------------------------------------------------------------------
 
-#if ENABLE_IL2CPP
 using System;
+#if ENABLE_IL2CPP
 using Unity.IL2CPP.CompilerServices;
 #endif
 
@@ -20,12 +20,12 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
     public static class Extensions {
-        public static EcsSystems AddGroup<T> (this EcsSystems systems, T groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) where T: System.IComparable, IEquatable<T> {
+        public static EcsSystems AddGroup<T> (this EcsSystems systems, T groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) where T: IComparable {
             return systems.Add (new EcsGroupSystem<T> (groupName, defaultState, eventWorldName, nestedSystems));
         }
 
         public static EcsSystems AddGroup (this EcsSystems systems, string groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) {
-            return systems.AddGroup<string>(groupName, defaultState, eventWorldName);
+            return systems.AddGroup<string>(groupName, defaultState, eventWorldName, nestedSystems);
         }
 
         public static EcsSystems DelHere<T> (this EcsSystems systems, string worldName = null) where T : struct {
@@ -66,7 +66,7 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         IEcsRunSystem,
         IEcsDestroySystem,
         IEcsPostDestroySystem
-        where T: System.IComparable, IEquatable<T> {
+        where T: IComparable {
         readonly IEcsSystem[] _allSystems;
         readonly IEcsRunSystem[] _runSystems;
         readonly int _runSystemsCount;
