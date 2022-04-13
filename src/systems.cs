@@ -4,15 +4,25 @@
 // Copyright (c) 2021-2022 Leopotam <leopotam@gmail.com>
 // -------------------------------------------------------------------------------------
 
-#if ENABLE_IL2CPP
 using System;
+#if ENABLE_IL2CPP
 using Unity.IL2CPP.CompilerServices;
 #endif
 
 namespace Leopotam.EcsLite.ExtendedSystems {
-    public struct EcsGroupSystemState {
-        public string Name;
-        public bool State;
+    public struct EcsGroupSystemState: IEcsGroupSystemState<string> {
+        public string Name {get; set;}
+        public bool State {get; set;}
+    }
+    
+    public struct EcsGroupSystemState<T>: IEcsGroupSystemState<T> where T: IComparable {
+        public T Name {get; set;}
+        public bool State {get; set;}
+    }
+
+    public interface IEcsGroupSystemState<T> where T: IComparable {
+        public T Name {get; set;}
+        public bool State {get; set;}
     }
 
 #if ENABLE_IL2CPP
@@ -20,8 +30,12 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
     public static class Extensions {
+        public static EcsSystems AddGroup<T> (this EcsSystems systems, T groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) where T: IComparable {
+            return systems.Add (new EcsGroupSystem<T, EcsGroupSystemState<T>> (groupName, defaultState, eventWorldName, nestedSystems));
+        }
+
         public static EcsSystems AddGroup (this EcsSystems systems, string groupName, bool defaultState, string eventWorldName, params IEcsSystem[] nestedSystems) {
-            return systems.Add (new EcsGroupSystem (groupName, defaultState, eventWorldName, nestedSystems));
+            return systems.Add (new EcsGroupSystem<string, EcsGroupSystemState>(groupName, defaultState, eventWorldName, nestedSystems));
         }
 
         public static EcsSystems DelHere<T> (this EcsSystems systems, string worldName = null) where T : struct {
@@ -56,24 +70,25 @@ namespace Leopotam.EcsLite.ExtendedSystems {
     [Il2CppSetOption (Option.NullChecks, false)]
     [Il2CppSetOption (Option.ArrayBoundsChecks, false)]
 #endif
-    public sealed class EcsGroupSystem :
+    public sealed class EcsGroupSystem<TName, TState> :
         IEcsPreInitSystem,
         IEcsInitSystem,
         IEcsRunSystem,
         IEcsDestroySystem,
-        IEcsPostDestroySystem {
+        IEcsPostDestroySystem
+        where TState: struct, IEcsGroupSystemState<TName> where TName: IComparable {
         readonly IEcsSystem[] _allSystems;
         readonly IEcsRunSystem[] _runSystems;
         readonly int _runSystemsCount;
         readonly string _eventsWorldName;
-        readonly string _name;
+        readonly TName _name;
         EcsFilter _filter;
-        EcsPool<EcsGroupSystemState> _pool;
+        EcsPool<TState> _pool;
         bool _state;
 
-        public EcsGroupSystem (string name, bool defaultState, string eventsWorldName, params IEcsSystem[] systems) {
+        public EcsGroupSystem (TName name, bool defaultState, string eventsWorldName, params IEcsSystem[] systems) {
 #if DEBUG && !LEOECSLITE_NO_SANITIZE_CHECKS
-            if (string.IsNullOrEmpty (name)) { throw new System.Exception ("Group name cant be null or empty."); }
+            if (name == null || name is string nameStr && string.IsNullOrEmpty (nameStr)) { throw new System.Exception ("Group name cant be null or empty."); }
             if (systems == null || systems.Length == 0) { throw new System.Exception ("Systems list cant be null or empty."); }
 #endif
             _name = name;
@@ -91,8 +106,8 @@ namespace Leopotam.EcsLite.ExtendedSystems {
 
         public void PreInit (EcsSystems systems) {
             var world = systems.GetWorld (_eventsWorldName);
-            _pool = world.GetPool<EcsGroupSystemState> ();
-            _filter = world.Filter<EcsGroupSystemState> ().End ();
+            _pool = world.GetPool<TState> ();
+            _filter = world.Filter<TState> ().End ();
             for (var i = 0; i < _allSystems.Length; i++) {
                 if (_allSystems[i] is IEcsPreInitSystem preInitSystem) {
                     preInitSystem.PreInit (systems);
@@ -119,11 +134,12 @@ namespace Leopotam.EcsLite.ExtendedSystems {
         public void Run (EcsSystems systems) {
             foreach (var entity in _filter) {
                 ref var evt = ref _pool.Get (entity);
-                if (evt.Name == _name) {
+                if (evt.Name.CompareTo (_name) == 0) {
                     _state = evt.State;
                     _pool.Del (entity);
                 }
             }
+
             if (_state) {
                 for (var i = 0; i < _runSystemsCount; i++) {
                     _runSystems[i].Run (systems);
