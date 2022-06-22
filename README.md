@@ -72,6 +72,33 @@ systems
     .Init ();
 ```
 
+Non-string group names are also supported (through IComparable), like enum, float, int, byte, or your own IComparable class.
+```csharp
+enum AttackType
+{
+    None,
+    Melee,
+    Ranged
+}
+systems
+    .AddGroup (AttackType.Melee, false, null,
+        new MeleeSystem1 (),
+        new MeleeSystem2 ())
+    .Add (new MeleeGroupEnableSystem ())
+    .Init ();
+    
+class MeleeGroupEnableSystem : IEcsRunSystem {
+    public void Run (EcsSystems systems) {
+        // We can enable "Melee" group with special event.
+        var world = systems.GetWorld ();
+        var entity = world.NewEntity ();
+        ref var evt = ref world.GetPool<EcsGroupSystemState<AttackType>> ().Add (entity);
+        evt.Name = AttackType.Melee;
+        evt.State = true;
+    }
+}
+```
+
 ## Autoremove components at point
 `DelHere()` helper can be used to autoremove components at required point in execution sequence:
 ```csharp
